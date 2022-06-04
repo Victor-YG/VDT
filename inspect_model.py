@@ -1,7 +1,7 @@
 import torch
 from prettytable import PrettyTable
 
-from core.models.dcnet import DCnet
+from core.dcnet import DCnet
 
 
 def count_parameters(model):

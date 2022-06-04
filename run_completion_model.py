@@ -7,9 +7,7 @@ import numpy as np
 from PIL import Image
 from matplotlib import pyplot as plt
 
-from core.models.dcnet import DCnet
-
-# from utils.io.ply_utils import depth_map_to_ply
+from core.dcnet import DCnet
 
 
 # check hardware
@@ -34,16 +32,12 @@ def main():
     ##############
     # load input #
     ##############
-    img_c_original = Image.open(args.rgb)
-    img_d_original = Image.open(args.depth)
-    w_input = img_c_original.width
-    h_input = img_c_original.height
+    img_c = Image.open(args.rgb)
+    img_d = Image.open(args.depth)
+    w_input = img_c.width
+    h_input = img_c.height
     print("Original image size (w x h) = ({}, {})".format(w_input, h_input))
-
-    # TODO::find way to avoid croping the image
-    img_c = img_c_original.crop([0, 0, 1024, 256])
-    img_d = img_d_original.crop([0, 0, 1024, 256])
-
+    
     # convert imgs to numpy float array
     arr_c = np.array(img_c, dtype=np.float32)
     arr_d = np.array(img_d, dtype=np.float32)
@@ -75,7 +69,6 @@ def main():
     #############
     # run model #
     #############
-
     with torch.no_grad():
         start_time = time.monotonic()
         tensor_p = model(tensor_c, tensor_d)

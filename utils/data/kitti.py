@@ -228,7 +228,7 @@ def main():
     if not os.path.exists(args.folder):
         exit("Input folder '{}' does not exist!".format(args.folder))
 
-    kitti = KITTI(args.folder, args.split)
+    kitti = KITTI(args.folder, args.split, mode="monodepth")
     print("Found {} images in total for split '{}'...".format(kitti.__len__(), args.split))
 
 

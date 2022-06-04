@@ -17,7 +17,7 @@ import torchvision.transforms as transforms
 
 import albumentations as alb
 
-from core.models.dcnet import DCnet
+from core.dcnet import DCnet
 from utils.loss import MAE_loss, MSE_loss
 from utils.data.kitti import KITTI
 
@@ -92,8 +92,10 @@ def prepare_completion_input_and_label(image_paths):
         img_trans_t = img_trans["img_t"]
 
         img_trans_c = np.divide(img_trans_c, 255.0)
-        img_trans_d = np.divide(img_trans_d, 256.0)
-        img_trans_t = np.divide(img_trans_t, 256.0)
+        # img_trans_d = np.divide(img_trans_d, 256.0)
+        # img_trans_t = np.divide(img_trans_t, 256.0)
+        img_trans_d = np.multiply(256.0, np.reciprocal(img_trans_d)) # np.divide(256.0, img_trans_d)
+        img_trans_t = np.multiply(256.0, np.reciprocal(img_trans_t)) # np.divide(256.0, img_trans_t)
         
         imgs_c.append(img_trans_c)
         imgs_d.append(img_trans_d)
@@ -120,14 +122,12 @@ def train_completion_model(model, dataloader, loss_func, epoches, device="cpu"):
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     optimizer.zero_grad()
 
-    losses = []
-    image_paths = next(iter(dataloader))
-
     training_start_time = time.monotonic()
 
     for i in range(epoches):
         print("epoch {}: ".format(i))
         print("-------------------------------------------------")
+        losses = []
 
         for batch_idx, image_paths in enumerate(dataloader):
             start_time = time.monotonic()
@@ -152,6 +152,8 @@ def train_completion_model(model, dataloader, loss_func, epoches, device="cpu"):
             print("batch {} took {:.1f} secs; loss = {:.2f}".format(batch_idx + 1, end_time - start_time, loss.item()))
 
         print("average loss at epoch {} = {:.2f}\n".format(i + 1, sum(losses) / len(losses)))
+
+        # if i % 1 == 0:
         save_checkpoint(model, optimizer)
 
     training_end_time = time.monotonic()
@@ -160,10 +162,10 @@ def train_completion_model(model, dataloader, loss_func, epoches, device="cpu"):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--kitti_folder", help="Folder containing KITTI dataset.", default=r"..\..\datasets\DCNE", required=False)
-    parser.add_argument("--batch_size", type=int, default=32, required=False)
-    parser.add_argument("--epoches", type=int, default=10, required=False)
-    parser.add_argument("--checkpoint", type=str, help="Checkpoint file path.", default="", required=False)
+    parser.add_argument("-kitti_folder", help="Folder containing KITTI dataset.", default=r"..\..\datasets\DCNE", required=False)
+    parser.add_argument("-batch_size", type=int, default=32, required=False)
+    parser.add_argument("-epoches", type=int, default=2, required=False)
+    parser.add_argument("-checkpoint", type=str, help="Checkpoint file path.", default="", required=False)
     args = parser.parse_args()
 
     # check arguments
@@ -177,6 +179,14 @@ def main():
             user_input = input()
             if user_input == "y" or user_input == "Y":
                 break
+            if user_input == "n" or user_input == "N":
+                print("Enter path to the checkpoint: ")
+                user_input = input()
+                if os.path.exists(user_input):
+                    args.checkpoint = user_input
+                    break
+                else:
+                    exit("User entered checkpoint file doesn't exist.")
 
     # load data
     kitti_dataset = KITTI(args.kitti_folder, transform, mode="monodepth", split="train")
