@@ -7,8 +7,8 @@ This is my implementation of stereo matching network.
 import torch
 import torch.nn as nn
 
-from modules.encoding_block import EncodingBlock
-from modules.decoding_block import DecodingBlock
+from .modules.encoding_block import EncodingBlock
+from .modules.decoding_block import DecodingBlock
 
 
 class SMnet(nn.Module):
@@ -36,10 +36,18 @@ class SMnet(nn.Module):
 
         self.conv_2 = nn.Conv2d(SIZE_1, out_channels, kernel_size=3, padding="same")
 
+
     def name(self): return "smnet"
 
-    def forward(self, c, d):
-        x = torch.cat((c, d), dim=1)
+
+    def forward(self, l, r):
+        '''
+        run stereo matching network
+        l - input left image
+        r - input right image
+        '''
+
+        x = torch.cat((l, r), dim=1)
         y_0 = self.conv_1(x)
 
         # encoding
@@ -49,12 +57,14 @@ class SMnet(nn.Module):
         y   = self.encoding_block_4(y_3)
         
         # decoding
-        y = self.decoding_block_1(y) + y_3
-        y = self.decoding_block_2(y) + y_2
-        y = self.decoding_block_3(y) + y_1
-        y = self.decoding_block_4(y) + y_0
+        y = self.decoding_block_1(y)
+        y = self.decoding_block_2(y)
+        y = self.decoding_block_3(y)
+        y = self.decoding_block_4(y)
+
+        #TODO::add handling to the dimension to match input size
+        y = nn.functional.interpolate(input=y, size=[y_0.shape[2], y_0.shape[3]], mode="bilinear")
         y = self.conv_2(y)
-        y = y + d
 
         return y
 

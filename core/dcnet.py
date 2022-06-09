@@ -36,9 +36,17 @@ class DCnet(nn.Module):
 
         self.conv_2 = nn.Conv2d(SIZE_1, out_channels, kernel_size=3, padding="same")
 
+
     def name(self): return "dcnet"
 
+
     def forward(self, c, d):
+        '''
+        run depth completion network
+        c - input color iamge
+        d - input depth image
+        '''
+        
         x = torch.cat((c, d), dim=1)
         y_0 = self.conv_1(x)
 
