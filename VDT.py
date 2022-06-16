@@ -9,6 +9,7 @@ import torch.nn as nn
 import params
 from core.dcnet import DCnet
 from core.smnet import SMnet
+from utils.loss import VDT_loss
 
 import sys
 sys.path.append("../utils")
@@ -24,6 +25,8 @@ class VDT(nn.Module):
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr = params.LEARNING_RATE)
 
+        #TODO::add parameters to set weight for each loss term
+        self.loss_func = VDT_loss()
 
     def name(self): return "VDT"
 
@@ -56,7 +59,7 @@ class VDT(nn.Module):
         print("Saved checkpoint {}...\n".format(file_path))
 
 
-    def train(self, l, r, t = None, T = None):
+    def train_networks(self, l, r, t = None, T = None):
         '''
         this is the training function of the pipeline.
         l - input left image
@@ -65,7 +68,21 @@ class VDT(nn.Module):
         T - input depth ground truth
         '''
 
-        pass
+        # forward
+        d = self.smnet(l, r)
+        
+        d[d == 0] = 1 / 1e6
+        d = torch.reciprocal(d) # disparity to depth conversion
+
+        D = self.dcnet(l, d)
+        loss = self.loss_func(l, r, d, D, t, T)
+
+        # backward
+        loss.backward()
+        self.optimizer.step()
+        self.optimizer.zero_grad()
+
+        return loss.item()
 
 
     def forward(self, l, r):

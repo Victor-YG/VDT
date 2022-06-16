@@ -8,6 +8,57 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class VDT_loss(nn.Module):
+    def __init__(self):
+        super(VDT_loss, self).__init__()
+
+
+    def forward(self, l, r, d, D, t, T):
+        '''
+        compute losses
+        l - input left image
+        r - input right image
+        d - predicted disparity image
+        D - predicted depth image
+        t - ground truth disparity image
+        T - ground truth depth image
+        '''
+
+        loss = torch.zeros(1)
+        disparity_l1_loss = torch.zeros(1)
+        depth_l1_loss = torch.zeros(1)
+
+        # compute L1 loss of disparity
+        if t != None:
+            err_d = torch.abs(d - t)
+            mask_d = (t > 0).detach()
+            disparity_l1_loss = torch.mean(err_d[mask_d])
+
+        # compute L1 loss of depth
+        if T != None:
+            err_D = torch.abs(D - T)
+            mask_D = (T > 0).detach()
+            depth_l1_loss = torch.mean(err_D[mask_D])
+
+        # compute smoothness loss of disparity
+        #TODO::to be implemented
+
+        # compute smoothness loss of depth
+        #TODO::to be implemented
+
+        # compute photometric consistency loss
+        #TODO::to be implemented
+
+        #TODO::add weight for each loss term
+        loss = disparity_l1_loss.to("cuda") + depth_l1_loss.to("cuda")
+        return loss
+
+
+
+
+# other's implementation
+#---------------------------------------------------------------------------------
+
 def allowed_losses():
     return loss_dict.keys()
 

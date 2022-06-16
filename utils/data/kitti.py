@@ -43,6 +43,7 @@ class KITTI_Drive():
     '''this object contains the kitti data for a particular drive'''
 
     def __init__(self, folder):
+        print("Loading data from '{}'...".format(folder))
         self.data = []
         
         if not os.path.exists(folder):
@@ -116,6 +117,8 @@ class KITTI(Dataset):
     # potential split: "train", "validation", "test_completion", "test_prediction"
     # potential mode:  "monocular", "monodepth", "stereo", "stereodepth"
     def __init__(self, folder, transform, mode="monocular", split="train"):
+        print("Loading KITTI dataset for split '{}'...".format(split))
+
         if not os.path.exists(folder):
             print("folder '{}' does not exist.".format(folder))
             return
@@ -129,6 +132,8 @@ class KITTI(Dataset):
         self.__load_calib__(split)
         self.__load__(split)
 
+        print("Found {} sets of images in total for split '{}'...".format(len(self.data), split))
+
 
     def __load_calib__(self, split):
         pass
@@ -138,10 +143,8 @@ class KITTI(Dataset):
         # load training data
         if   split == "train":
             folder = os.path.join(self.kitti_folder, "train")
-            print("split == {}".format(split))
         elif split == "validation":
             folder = os.path.join(self.kitti_folder, "val")
-            print("split == {}".format(split))
         elif split == "test_completion":
             folder = os.path.join(self.kitti_folder, "test_depth_completion_anonymous")
         elif split == "test_prediction":
@@ -229,7 +232,6 @@ def main():
         exit("Input folder '{}' does not exist!".format(args.folder))
 
     kitti = KITTI(args.folder, args.split, mode="monodepth")
-    print("Found {} images in total for split '{}'...".format(kitti.__len__(), args.split))
 
 
 if __name__ == "__main__":

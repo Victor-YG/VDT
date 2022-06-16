@@ -70,7 +70,7 @@ def load_checkpoint(model, optimizer, file_path):
     print("Loaded checkpoint from file '{}'".format(file_path))
 
 
-def prepare_completion_input_and_label(image_paths):
+def prepare_completion_input_and_label(image_paths, device="cpu"):
     '''load images and apply transformation'''
 
     # transform images
@@ -92,10 +92,10 @@ def prepare_completion_input_and_label(image_paths):
         img_trans_t = img_trans["img_t"]
 
         img_trans_c = np.divide(img_trans_c, 255.0)
-        # img_trans_d = np.divide(img_trans_d, 256.0)
-        # img_trans_t = np.divide(img_trans_t, 256.0)
-        img_trans_d = np.multiply(256.0, np.reciprocal(img_trans_d)) # np.divide(256.0, img_trans_d)
-        img_trans_t = np.multiply(256.0, np.reciprocal(img_trans_t)) # np.divide(256.0, img_trans_t)
+        img_trans_d = np.divide(img_trans_d, 256.0)
+        img_trans_t = np.divide(img_trans_t, 256.0)
+        # img_trans_d = np.multiply(256.0, np.reciprocal(img_trans_d)) # np.divide(256.0, img_trans_d)
+        # img_trans_t = np.multiply(256.0, np.reciprocal(img_trans_t)) # np.divide(256.0, img_trans_t)
         
         imgs_c.append(img_trans_c)
         imgs_d.append(img_trans_d)
@@ -111,7 +111,7 @@ def prepare_completion_input_and_label(image_paths):
     tensor_d = torch.reshape(tensor_d, [tensor_d.shape[0], -1, tensor_d.shape[1], tensor_d.shape[2]])
     tensor_t = torch.reshape(tensor_t, [tensor_t.shape[0], -1, tensor_t.shape[1], tensor_t.shape[2]])
 
-    return tensor_c, tensor_d, tensor_t
+    return tensor_c.to(device), tensor_d.to(device), tensor_t.to(device)
 
 
 def train_completion_model(model, dataloader, loss_func, epoches, device="cpu"):
@@ -133,10 +133,7 @@ def train_completion_model(model, dataloader, loss_func, epoches, device="cpu"):
             start_time = time.monotonic()
 
             # data preparation
-            tensor_c, tensor_d, tensor_t = prepare_completion_input_and_label(image_paths)
-            tensor_c = tensor_c.to(device)
-            tensor_d = tensor_d.to(device)
-            tensor_t = tensor_t.to(device)
+            tensor_c, tensor_d, tensor_t = prepare_completion_input_and_label(image_paths, device)
 
             # forward
             tensor_output = model(tensor_c, tensor_d)
@@ -162,9 +159,9 @@ def train_completion_model(model, dataloader, loss_func, epoches, device="cpu"):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-kitti_folder", help="Folder containing KITTI dataset.", default=r"..\..\datasets\DCNE", required=False)
+    parser.add_argument("-kitti_folder", help="Folder containing KITTI dataset.", default=r"..\..\datasets\kitti\depth", required=False)
     parser.add_argument("-batch_size", type=int, default=32, required=False)
-    parser.add_argument("-epoches", type=int, default=2, required=False)
+    parser.add_argument("-epoches", type=int, default=10, required=False)
     parser.add_argument("-checkpoint", type=str, help="Checkpoint file path.", default="", required=False)
     args = parser.parse_args()
 
