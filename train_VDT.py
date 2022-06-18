@@ -115,7 +115,7 @@ def train_VDT(model, dataloader, epoches, device="cpu"):
         print("average loss at epoch {} = {:.2f}\n".format(i + 1, sum(losses) / len(losses)))
 
         # if i % 1 == 0:
-        save_checkpoint(model, optimizer)
+        model.save_checkpoint()
 
     training_end_time = time.monotonic()
     print("Training of {} epoches took {:.1f} secs.".format(epoches, training_end_time - training_start_time))

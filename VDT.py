@@ -1,7 +1,9 @@
 '''
 This is the combined pipeline for training and inference.
 '''
+
 import math
+import argparse
 
 import torch
 import torch.nn as nn
@@ -9,10 +11,10 @@ import torch.nn as nn
 import params
 from core.dcnet import DCnet
 from core.smnet import SMnet
-from utils.loss import VDT_loss
 
-import sys
-sys.path.append("../utils")
+# import sys
+# sys.path.append("../utils")
+from utils.loss import VDT_loss
 from utils.general import get_time_stamp
 
 
@@ -99,6 +101,7 @@ class VDT(nn.Module):
 
 
 def main():
+
     model = VDT()
     
     l = torch.rand(1, 3, 128, 128)

@@ -18,8 +18,9 @@ print("Using {} device".format(DEVICE))
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-weights", help="Weight for network.", default=r".\weights\dcnet.pth.tar", required=False)
-    parser.add_argument("-rgb", help="Input RGB image.", default=r".\test\0000000005_c.png", required=False)
-    parser.add_argument("-depth", help="Input depth image.", default=r".\test\0000000005_d.png", required=False)
+    parser.add_argument("-rgb", help="Input RGB image.", default=r".\test\0000000005_l.png", required=False)
+    parser.add_argument("-depth", help="Input depth image.", default=r".\test\0000000005_l_d.png", required=False)
+    parser.add_argument("-ground_truth", help="Input depth ground truth.", default=r".\test\0000000005_l_T.png", required=False)
     parser.add_argument("-output", help="Output folder.", required=False)
     args = parser.parse_args()
 
@@ -34,6 +35,8 @@ def main():
     ##############
     img_c = Image.open(args.rgb)
     img_d = Image.open(args.depth)
+    img_T = Image.open(args.ground_truth)
+
     w_input = img_c.width
     h_input = img_c.height
     print("Original image size (w x h) = ({}, {})".format(w_input, h_input))
@@ -83,10 +86,11 @@ def main():
     ###############
     # save output #
     ###############
-    img_final = Image.new("RGB", (w_input, h_input * 3), "black")
+    img_final = Image.new("RGB", (w_input, h_input * 4), "black")
     img_final.paste(img_c, (0, 0))
     img_final.paste(img_d, (0, h_input))
     img_final.paste(img_p, (0, h_input * 2))
+    img_final.paste(img_T, (0, h_input * 3))
     img_final.show()
 
     if args.output:
