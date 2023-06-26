@@ -15,6 +15,31 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "Train PSMNet",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/train_PSMNet.py",
+            "args": [
+                "--folder", "../../datasets/sceneflow/",
+                "--checkpoint", "./training/PSMNet_0.tar",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Run PSMNet",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_PSMNet.py",
+            "args": [
+                "--checkpoint", "./training/PSMNet_0.tar",
+                "--img_l", "./examples/0000000005_l.png",
+                "--img_r", "./examples/0000000005_r.png",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }
