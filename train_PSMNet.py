@@ -1,6 +1,7 @@
 import os
 import time
 import argparse
+from tqdm import tqdm
 
 import torch
 import torch.nn as nn
@@ -38,16 +39,14 @@ def train_PSMNet(model, checkpoint, dataloader_train, epoches, max_disparity=192
         model.load_state_dict(checkpoint_dict["state_dict"])
 
     model.train(True)
-    training_start_time = time.monotonic()
 
     for i in range(start_epoch, start_epoch + epoches):
-        print("[INFO]: epoch {}: ".format(i))
-        print("-------------------------------------------------")
         losses = []
 
-        for batch_idx, [img_l, img_r, img_d] in enumerate(dataloader_train):
-            start_time = time.monotonic()
+        training_progress = tqdm(dataloader_train)
+        training_progress.set_description("[INFO]: epoch {}".format(i))
 
+        for batch_idx, [img_l, img_r, img_d] in enumerate(training_progress):
             # data preparation
             if device == "cuda":
                 img_l, img_r, img_d = img_l.cuda(), img_r.cuda(), img_d.cuda()
@@ -60,9 +59,9 @@ def train_PSMNet(model, checkpoint, dataloader_train, epoches, max_disparity=192
             output1 = torch.squeeze(output1, 1)
             output2 = torch.squeeze(output2, 1)
             output3 = torch.squeeze(output3, 1)
-            loss = 0.5 * F.smooth_l1_loss(output1[mask], img_d[mask], size_average=True)\
-                 + 0.7 * F.smooth_l1_loss(output2[mask], img_d[mask], size_average=True)\
-                 + 1.0 * F.smooth_l1_loss(output3[mask], img_d[mask], size_average=True)
+            loss = 0.5 * F.smooth_l1_loss(output1[mask], img_d[mask], reduction='mean')\
+                 + 0.7 * F.smooth_l1_loss(output2[mask], img_d[mask], reduction='mean')\
+                 + 1.0 * F.smooth_l1_loss(output3[mask], img_d[mask], reduction='mean')
 
             loss.backward()
             losses.append(loss)
@@ -70,17 +69,17 @@ def train_PSMNet(model, checkpoint, dataloader_train, epoches, max_disparity=192
             optimizer.step()
             optimizer.zero_grad()
 
-            end_time = time.monotonic()
-            print("[INFO]: Batch {} took {:.1f} secs; loss = {:.2f}".format(batch_idx + 1, end_time - start_time, loss))
+            training_progress.set_postfix_str("loss = {:.2f}".format(loss))
+            # break
 
-        print("[INFO]: Average loss at epoch {} = {:.2f}.\n".format(i + 1, sum(losses) / len(losses)))
+        print("[INFO]: Average loss at epoch {} = {:.2f}.\n".format(i, sum(losses) / len(losses)))
+
+        with open("./training/PSMNet_{0}.log".format(i), "w") as f:
+            for loss in losses: print(loss, end="\n", file=f)
 
         # save checkpoint
         file_path = "./training/PSMNet_{0}.tar".format(i)
         torch.save({'epoch': i, "state_dict" : model.state_dict()}, file_path)
-
-    training_end_time = time.monotonic()
-    print("[INFO]: Trained for {} epoches took {:.1f} secs in total.".format(epoches, training_end_time - training_start_time))
 
 
 def test_PSMNet(model, dataloader_test, max_disparity=192, device="cpu"):
@@ -89,7 +88,9 @@ def test_PSMNet(model, dataloader_test, max_disparity=192, device="cpu"):
     model.eval()
     lossess = []
 
-    for batch_idx, [img_l, img_r, img_d] in enumerate(dataloader_test):
+    test_progress = tqdm(dataloader_test, desc="[INFO]: test model")
+
+    for batch_idx, [img_l, img_r, img_d] in enumerate(test_progress):
         if device == "cuda":
             img_l, img_r, img_d = img_l.cuda(), img_r.cuda(), img_d.cuda()
         mask = img_d < max_disparity
@@ -98,14 +99,12 @@ def test_PSMNet(model, dataloader_test, max_disparity=192, device="cpu"):
         if img_l.shape[2] % 16 != 0:
             times = img_l.shape[2] // 16
             top_pad = (times + 1) * 16 - img_l.shape[2]
-        else:
-            top_pad = 0
+        else: top_pad = 0
 
         if img_l.shape[3] % 16 != 0:
             times = img_l.shape[3] // 16
             right_pad = (times + 1) * 16 - img_l.shape[3]
-        else:
-            right_pad = 0
+        else: right_pad = 0
 
         img_l = F.pad(img_l, (0, right_pad, top_pad, 0))
         img_r = F.pad(img_r, (0, right_pad, top_pad, 0))
@@ -123,8 +122,9 @@ def test_PSMNet(model, dataloader_test, max_disparity=192, device="cpu"):
         loss = F.l1_loss(img_p[mask], img_d[mask]) if len(img_d[mask]) != 0 else 0
         loss = loss.data.cpu()
 
-        print("[INFO]: Batch {} test loss = {:.3f}".format(batch_idx, loss))
         lossess.append(loss)
+        test_progress.set_postfix_str("loss = {:.2f}".format(loss))
+        # break
 
     print("[INFO]: Average test loss = {:.3f}".format(sum(lossess) / len(lossess)))
 
@@ -170,10 +170,14 @@ def main():
     print("[INFO]: Number of model parameters: {}".format(sum([p.data.nelement() for p in model.parameters()])))
 
     # train model
+    training_start_time = time.monotonic()
     train_PSMNet(model, args.checkpoint, dataloader_train, epoches=args.epoches, max_disparity=args.maxdisp, device=DEVICE)
 
     # test model
     test_PSMNet(model, dataloader_test, device=DEVICE)
+
+    training_end_time = time.monotonic()
+    print("[INFO]: Trained for {} epoches took {:.1f} secs in total.".format(args.epoches, training_end_time - training_start_time))
 
 
 if __name__ == "__main__":
